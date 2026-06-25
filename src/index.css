@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0056b3;
+  --color-primary-dark: #004494;
+  --color-primary-light: #e6f0fa;
+  --color-secondary: #0ea5e9;
+  --color-dark: #1e293b;
+  --color-light: #f8fafc;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+/* Custom Print Styles for PDF/Receipt Print */
+@media print {
+  body {
+    background-color: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
