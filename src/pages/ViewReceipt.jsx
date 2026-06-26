@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Printer, Download, ArrowLeft, Building2, User, FileText, IndianRupee, Edit } from 'lucide-react';
+import { Printer, Download, ArrowLeft, Edit } from 'lucide-react';
 import { ref, get } from 'firebase/database';
 import { db } from '../firebase';
 import { generatePDF } from '../utils/pdfGenerator';
-import numWords from 'num-words';
 import signImage from '../assets/sign.png';
 
 const ViewReceipt = () => {
@@ -54,25 +53,12 @@ const ViewReceipt = () => {
     await generatePDF(receipt, profile, 'download');
   };
 
-  const handlePrint = () => {
-    // Use native browser print which prints the beautiful web preview
-    window.print();
+  const handlePrint = async () => {
+    await generatePDF(receipt, profile, 'print');
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-
-  const getAmountInWords = (amount) => {
-    try {
-      return numWords(Math.round(amount)).toUpperCase() + ' RUPEES ONLY';
-    } catch (e) {
-      return `RUPEES ${amount}`;
-    }
+    return Number(amount).toFixed(2);
   };
 
   if (loading) {
@@ -99,8 +85,13 @@ const ViewReceipt = () => {
     );
   }
 
+  const isClient = receipt.receiptType === 'Client';
+  const amt = parseFloat(receipt.amount) || 0;
+  const tot = parseFloat(receipt.totalAmount) || 0;
+  const taxAmount = tot - amt;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <button
@@ -135,208 +126,153 @@ const ViewReceipt = () => {
         </div>
       </div>
 
-      {/* Web Preview of Receipt */}
-      <div
-        className="bg-white mx-auto shadow-xl overflow-hidden relative print-only"
-        style={{ 
-          WebkitPrintColorAdjust: 'exact', 
-          printColorAdjust: 'exact',
-          width: '210mm',
-          minHeight: '297mm',
-          backgroundColor: '#ffffff'
-        }}
-      >
-        {/* Geometric Header SVG */}
-        <div className="absolute top-0 left-0 w-full pointer-events-none">
-          <svg width="100%" height="160" viewBox="0 0 1000 160" preserveAspectRatio="none">
-            {/* Main Top Bar */}
-            <rect x="0" y="0" width="1000" height="90" fill="#0277bd" />
-            
-            {/* Shadow Triangles */}
-            <polygon points="120,90 180,90 150,130" fill="#222222" />
-            <polygon points="200,90 260,90 230,130" fill="#222222" />
+      {/* A4 Format Receipt Card */}
+      <div className="flex justify-center print-only w-full">
+        <div
+          className="bg-white w-full max-w-[210mm] min-h-[297mm] p-10 sm:p-14 relative text-[13px] text-gray-800 border-2 border-gray-600 print:border-2 print:border-gray-600"
+          style={{
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)'
+          }}
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <img src="/softspera.png" alt="Logo" className="h-16 w-auto object-contain" />
+              <div className="flex flex-col justify-center">
+                <span className="text-3xl font-black text-gray-900 tracking-tight uppercase">{profile?.companyName || 'SOFTSPERA'}</span>
+                {profile?.tagline && <span className="text-sm font-bold text-gray-500 tracking-widest uppercase mt-1.5">{profile.tagline}</span>}
+              </div>
+            </div>
+            <h1 className="text-[36px] font-bold text-[#F97316]">RECEIPT</h1>
+          </div>
 
-            {/* Leftmost Ribbon (Light Blue) */}
-            <polygon points="0,0 80,0 180,130 100,130" fill="#03a9f4" />
-            
-            {/* Middle Ribbon (Main Blue) */}
-            <polygon points="80,0 160,0 260,130 180,130" fill="#0277bd" />
-          </svg>
-        </div>
-
-        {/* Company Header Overlay */}
-        <div className="absolute top-0 left-0 w-full h-[90px] px-12 flex justify-between items-center z-20 text-white">
-          {/* Left: Logo and Name */}
-          <div className="flex items-center gap-4">
-            <img src="/softspera.png" alt="Company Logo" className="h-20 w-20 object-contain" />
+          <div className="grid grid-cols-2 gap-8 mb-6">
+            {/* Left - Seller */}
             <div>
-              <h2 className="text-lg font-black tracking-wider uppercase">{profile?.companyName || 'Company Name'}</h2>
-              {profile?.tagline && <p className="text-[10px] text-blue-100 uppercase tracking-widest">{profile.tagline}</p>}
+              <h3 className="font-bold text-[#1d4ed8] text-[15px] mb-3">Seller</h3>
+              <div className="space-y-1 text-gray-900 leading-snug">
+                <p className="font-medium">{profile?.companyName || 'SOFTSPERA'}</p>
+                {profile?.tagline && <p>{profile.tagline}</p>}
+                {profile?.phone && <p>Phone: {profile.phone}</p>}
+                {profile?.email && <p>Email: {profile.email}</p>}
+              </div>
+            </div>
+            {/* Right - Meta */}
+            <div>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-right">
+                <span className="text-left font-medium text-gray-700">Receipt Number</span>
+                <span className="border-b border-gray-300 pb-1">{receipt.receiptNo}</span>
+
+                <span className="text-left font-medium text-gray-700">Receipt Date</span>
+                <span className="border-b border-gray-300 pb-1">{receipt.createdDate}</span>
+
+                <span className="text-left font-medium text-gray-700">Payment Method</span>
+                <span className="border-b border-gray-300 pb-1">{receipt.paymentMode}</span>
+
+                {receipt.transactionId && (
+                  <>
+                    <span className="text-left font-medium text-gray-700">Transaction ID</span>
+                    <span className="border-b border-gray-300 pb-1">{receipt.transactionId}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right: Contact Details */}
-          <div className="text-right text-[10px] space-y-0.5 font-medium opacity-95 tracking-wide">
-            {profile?.phone && <p>📞 {profile.phone}</p>}
-            {profile?.email && <p>✉️ {profile.email}</p>}
-            {profile?.website && <p>🌐 {profile.website}</p>}
-          </div>
-        </div>
+          {/* Customer */}
+          <div className="flex justify-end mb-10">
+            <div className="w-1/2 ml-4">
+              <h3 className="font-bold text-[#1d4ed8] text-[15px] mb-3">{isClient ? 'Customer' : 'Student'}</h3>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-right">
+                <span className="text-left font-medium text-gray-700">Name</span>
+                <span className="border-b border-gray-300 pb-1">{receipt.customerName}</span>
 
-        {/* Content Container */}
-        <div className="relative z-10 px-12 pb-20">
-          {/* Spacer to push content below absolute SVG header without collapsing in print */}
-          <div className="h-[140px] w-full" aria-hidden="true"></div>
-          
-          {/* Title */}
-          <div className="text-center mb-12">
-            <h1 className="text-[54px] leading-none font-black text-[#0277bd] tracking-tighter" style={{ fontFamily: 'Arial, sans-serif' }}>
-              FEE RECEIPT
-            </h1>
-          </div>
+                <span className="text-left font-medium text-gray-700">Mobile</span>
+                <span className="border-b border-gray-300 pb-1">{receipt.mobile}</span>
 
-          {/* Meta Info */}
-          <div className="flex justify-between items-start mb-10 text-[#0277bd] font-bold text-sm tracking-widest">
-            <div className="space-y-1">
-              <p className="uppercase">ISSUED TO:</p>
-              <div className="text-slate-800 font-medium tracking-normal text-base mt-2">
-                <p className="font-bold text-lg">{receipt.customerName}</p>
-                <p>{receipt.mobile}</p>
-                {receipt.address && <p className="whitespace-pre-wrap">{receipt.address}</p>}
-              </div>
-            </div>
-            <div className="space-y-3 text-right">
-              <div>
-                <span className="uppercase inline-block w-28 text-left">RECEIPT NO:</span>
-                <span className="text-slate-800 tracking-normal">{receipt.receiptNo}</span>
-              </div>
-              <div>
-                <span className="uppercase inline-block w-28 text-left">DATE:</span>
-                <span className="text-slate-800 tracking-normal">{receipt.createdDate}</span>
-              </div>
-              <div className="pt-2 flex flex-col items-end">
-                <span className="text-xs text-slate-500 tracking-normal font-normal">Payment Mode: {receipt.paymentMode}</span>
-                {receipt.transactionId && <span className="text-[10px] text-slate-400 tracking-normal font-mono">TXN: {receipt.transactionId}</span>}
+                {!isClient && receipt.college && (
+                  <>
+                    <span className="text-left font-medium text-gray-700">College</span>
+                    <span className="border-b border-gray-300 pb-1">{receipt.college}</span>
+                  </>
+                )}
+                {!isClient && receipt.domain && (
+                  <>
+                    <span className="text-left font-medium text-gray-700">Domain</span>
+                    <span className="border-b border-gray-300 pb-1">{receipt.domain}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           {/* Table */}
-          <div className="mb-10">
-            <table className="w-full text-left border-collapse border-b border-[#0277bd]">
+          <div className="mb-16">
+            <table className="w-full border-collapse border border-gray-300 text-[13px]">
               <thead>
-                <tr className="bg-[#0277bd] text-white uppercase text-sm tracking-widest">
-                  <th className="py-3 px-4 font-bold w-1/2">FEE DETAILS</th>
-                  <th className="py-3 px-4 font-bold border-l border-white/20 text-center w-1/4">AMOUNT</th>
-                  <th className="py-3 px-4 font-bold border-l border-white/20 text-right w-1/4">TOTAL</th>
+                <tr className="bg-[#40c4c4] text-white">
+                  <th className="border border-gray-300 px-2 py-3 text-center w-24">QUANTITY</th>
+                  <th className="border border-gray-300 px-3 py-3 text-left">DESCRIPTION</th>
+                  <th className="border border-gray-300 px-2 py-3 text-center w-28">UNIT PRICE</th>
+                  <th className="border border-gray-300 px-2 py-3 text-center w-28">SUBTOTAL</th>
+                  <th className="border border-gray-300 px-2 py-3 text-center w-28">TAX</th>
                 </tr>
               </thead>
-              <tbody className="text-slate-800">
+              <tbody>
                 <tr>
-                  <td className="py-5 px-4 border-l border-r border-[#0277bd]">
-                    <p className="font-bold">{receipt.productName}</p>
-                    {receipt.description && <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{receipt.description}</p>}
+                  <td className="border border-gray-300 px-2 py-3 text-center">1</td>
+                  <td className="border border-gray-300 px-3 py-3 whitespace-pre-wrap">
+                    <div className="font-medium">{receipt.productName}</div>
+                    {receipt.description && <div className="text-gray-600 mt-1">{receipt.description}</div>}
                   </td>
-                  <td className="py-5 px-4 border-r border-[#0277bd] text-center font-medium">
-                    {formatCurrency(receipt.amount)}
-                  </td>
-                  <td className="py-5 px-4 border-r border-[#0277bd] text-right font-medium">
-                    {formatCurrency(receipt.amount)}
-                  </td>
-                </tr>
-                {/* Empty filler rows for grid effect like invoice */}
-                <tr>
-                  <td className="py-4 border border-[#0277bd]"></td>
-                  <td className="py-4 border border-[#0277bd]"></td>
-                  <td className="py-4 border border-[#0277bd]"></td>
-                </tr>
-                <tr>
-                  <td className="py-4 border-l border-r border-[#0277bd]"></td>
-                  <td className="py-4 border-r border-[#0277bd]"></td>
-                  <td className="py-4 border-r border-[#0277bd]"></td>
+                  <td className="border border-gray-300 px-2 py-3 text-center">{formatCurrency(amt)}</td>
+                  <td className="border border-gray-300 px-2 py-3 text-center">{formatCurrency(amt)}</td>
+                  <td className="border border-gray-300 px-2 py-3 text-center">{formatCurrency(taxAmount)}</td>
                 </tr>
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="3" className="border border-gray-300 px-4 py-4 align-top whitespace-pre-wrap text-[11px] text-gray-600 leading-relaxed">
+                    <span className="font-bold text-gray-800 text-[12px] block mb-1">Notes:</span>
+                    {isClient ? (
+                      '• Payments once received are generally non-refundable unless otherwise agreed.\n• Additional work outside the agreed scope will be billed separately.\n• Source code and ownership will be transferred after full payment.\n• The client should preserve this receipt for future reference.'
+                    ) : (
+                      '• Internship fees are non-refundable and non-transferable.\n• Enrollment is confirmed only after successful fee payment.\n• Certificates will be issued only upon successful completion.\n• Any misconduct may result in termination without refund.'
+                    )}
+                  </td>
+                  <td colSpan="2" className="border border-gray-300 p-0 align-top">
+                    <div className="flex border-b border-gray-300 h-[33.33%]">
+                      <div className="w-1/2 px-3 py-2 font-bold border-r border-gray-300 bg-gray-50 flex items-center">SUBTOTAL</div>
+                      <div className="w-1/2 px-3 py-2 text-right flex items-center justify-end">{formatCurrency(amt)}</div>
+                    </div>
+                    <div className="flex border-b border-gray-300 h-[33.33%]">
+                      <div className="w-1/2 px-3 py-2 font-bold border-r border-gray-300 bg-gray-50 flex items-center">TAX ({receipt.gst}%)</div>
+                      <div className="w-1/2 px-3 py-2 text-right flex items-center justify-end">{formatCurrency(taxAmount)}</div>
+                    </div>
+                    <div className="flex h-[33.33%]">
+                      <div className="w-1/2 px-3 py-2 font-bold border-r border-gray-300 bg-gray-50 flex items-center">TOTAL</div>
+                      <div className="w-1/2 px-3 py-2 text-right font-bold flex items-center justify-end">{formatCurrency(tot)}</div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
-            
-            {/* Table Totals & Amount in Words */}
-            <div className="flex justify-between items-end mt-4 gap-4">
-              {/* Amount in Words */}
-              <div className="w-1/2">
-                <h4 className="text-[10px] font-bold text-[#0277bd] uppercase tracking-widest mb-1">AMOUNT IN WORDS:</h4>
-                <p className="text-xs font-bold text-slate-800 capitalize">{getAmountInWords(receipt.totalAmount || 0).toLowerCase()}</p>
-              </div>
+          </div>
 
-              <div className="w-1/3">
-                {parseFloat(receipt.gst) > 0 && (
-                  <>
-                    <div className="flex justify-between items-center py-2 px-4 text-sm font-bold text-slate-700 border-b border-slate-200">
-                      <span>SUBTOTAL</span>
-                      <span>₹{parseFloat(receipt.amount).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-4 text-sm font-bold text-slate-700 mb-2">
-                      <span>TAX ({receipt.gst}%)</span>
-                      <span>₹{(receipt.totalAmount - receipt.amount).toFixed(2)}</span>
-                    </div>
-                  </>
-                )}
-                <div className="bg-[#0277bd] text-white px-4 py-3 flex justify-between items-center font-bold">
-                  <span>TOTAL</span>
-                  <span>₹{parseFloat(receipt.totalAmount || 0).toFixed(2)}</span>
-                </div>
-              </div>
+          <div className="flex justify-between items-end text-center mt-auto pt-8">
+            <div className="w-56 border-t border-gray-300 pt-3">
+              Salesperson
+            </div>
+            <div className="w-56 border-t border-gray-300 pt-3 relative">
+              <img src={signImage} alt="Signature" className="absolute bottom-10 left-0 right-0 mx-auto h-20 object-contain mix-blend-multiply opacity-80" />
+              Signature
             </div>
           </div>
 
-          {/* Bottom Section */}
-          <div className="mt-8 flex justify-between items-end gap-4">
-            <div className="w-3/5">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-2">TERMS & CONDITIONS</h4>
-                <ul className="list-disc pl-4 text-[10px] font-medium text-slate-600 space-y-1 leading-relaxed">
-                  <li>Fees once paid are non-refundable and non-transferable.</li>
-                  <li>Enrollment is confirmed only after successful fee payment.</li>
-                  <li>Certificates and completion documents will be issued only upon successful completion of the program and clearance of all dues.</li>
-                  <li>Students must adhere to the organization's rules, policies, and code of conduct.</li>
-                  <li>Any misconduct may result in termination from the program without a fee refund.</li>
-                  <li>The organization reserves the right to modify schedules, curriculum, or program structure when necessary.</li>
-                  <li>By making the payment, the student acknowledges and agrees to these terms and conditions.</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Stamp and Signature positioned on the bottom right */}
-            <div className="w-2/5 flex flex-col items-center justify-end relative translate-y-12">
-              <div className="transform -rotate-12 opacity-90 absolute -top-4 -left-2 z-20">
-                <div className="border-4 border-emerald-500 text-emerald-500 text-xl font-black py-1 px-3 uppercase tracking-widest bg-white/50 backdrop-blur-sm">
-                  PAID
-                </div>
-              </div>
-              <div className="w-56 h-32 flex items-center justify-center mb-0 relative z-10 pointer-events-none">
-                <img src={signImage} alt="Signature" className="h-full w-full object-contain mix-blend-multiply opacity-90 scale-[2.5] translate-y-6" />
-              </div>
-              <div className="w-48 border-b border-slate-400 mb-1"></div>
-              <p className="text-xs font-bold text-[#0277bd] uppercase tracking-wider">Authorized Signature</p>
-              <p className="text-[9px] text-slate-500">{profile.companyName}</p>
-            </div>
+          <div className="text-center mt-16 text-[17px] font-bold text-[#F97316]">
+            Thank you for the payment!
           </div>
-        </div>
 
-        {/* Geometric Footer SVG */}
-        <div className="absolute bottom-0 left-0 w-full pointer-events-none">
-          <svg width="100%" height="80" viewBox="0 0 1000 80" preserveAspectRatio="none">
-            {/* Main Bottom Bar */}
-            <rect x="0" y="40" width="1000" height="40" fill="#0277bd" />
-            
-            {/* Shadow Triangles */}
-            <polygon points="760,40 820,40 790,10" fill="#222222" />
-            <polygon points="840,40 900,40 870,10" fill="#222222" />
-
-            {/* Middle Ribbon (Main Blue) */}
-            <polygon points="760,80 840,80 820,10 740,10" fill="#0277bd" />
-            
-            {/* Rightmost Ribbon (Light Blue) */}
-            <polygon points="840,80 920,80 900,10 820,10" fill="#03a9f4" />
-          </svg>
         </div>
       </div>
     </div>

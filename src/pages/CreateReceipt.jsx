@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, push, set, get, query, limitToLast, orderByChild } from 'firebase/database';
+import { ref, push, set, get, query, limitToLast } from 'firebase/database';
 import { db } from '../firebase';
-import { Save, X, Calculator, CreditCard, Banknote, Building2 } from 'lucide-react';
+import { Save, X, Calculator, CreditCard, Banknote, Building2, User, Briefcase } from 'lucide-react';
 
 const CreateReceipt = () => {
   const navigate = useNavigate();
@@ -10,10 +10,17 @@ const CreateReceipt = () => {
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
+    receiptType: 'Student', // 'Student' or 'Client'
     receiptNo: '',
     customerName: '',
     mobile: '',
     address: '',
+    college: '',
+    branch: '',
+    domain: '',
+    duration: '',
+    batch: '',
+    mentor: '',
     productName: '',
     description: '',
     amount: '',
@@ -38,7 +45,6 @@ const CreateReceipt = () => {
         const year = new Date().getFullYear();
         const prefix = `SPT-${year}-`;
         
-        // Fetch the last receipt to increment the number
         const receiptsRef = ref(db, 'receipts');
         const lastReceiptQuery = query(receiptsRef, limitToLast(1));
         
@@ -63,7 +69,6 @@ const CreateReceipt = () => {
         setFormData(prev => ({ ...prev, receiptNo: `${prefix}${formattedNum}` }));
       } catch (err) {
         console.error("Error generating receipt number:", err);
-        // Fallback pattern if firebase fails
         const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
         setFormData(prev => ({ ...prev, receiptNo: `SPT-${new Date().getFullYear()}-${randomNum}` }));
       }
@@ -105,8 +110,6 @@ const CreateReceipt = () => {
       };
 
       await set(newReceiptRef, receiptData);
-      
-      // Navigate to view receipt
       navigate(`/receipt/${newReceiptRef.key}`);
     } catch (err) {
       console.error("Error saving receipt:", err);
@@ -116,7 +119,7 @@ const CreateReceipt = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">Create New Receipt</h1>
         <button 
@@ -134,6 +137,35 @@ const CreateReceipt = () => {
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        
+        {/* Receipt Type Selection */}
+        <div className="bg-white p-6 border-b border-slate-100 flex justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, receiptType: 'Student' }))}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-all font-semibold ${
+              formData.receiptType === 'Student' 
+                ? 'border-[#0056b3] bg-[#f0f7ff] text-[#0056b3]' 
+                : 'border-slate-200 text-slate-500 hover:border-slate-300'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            Student Internship
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, receiptType: 'Client' }))}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-all font-semibold ${
+              formData.receiptType === 'Client' 
+                ? 'border-[#0056b3] bg-[#f0f7ff] text-[#0056b3]' 
+                : 'border-slate-200 text-slate-500 hover:border-slate-300'
+            }`}
+          >
+            <Briefcase className="w-5 h-5" />
+            Client Project
+          </button>
+        </div>
+
         {/* Form Header info */}
         <div className="bg-slate-50 p-6 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           <div>
@@ -145,7 +177,6 @@ const CreateReceipt = () => {
               value={formData.receiptNo}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all font-bold text-[#0056b3]"
-              placeholder="e.g. SPT-2026-0001"
             />
           </div>
           <div>
@@ -157,20 +188,21 @@ const CreateReceipt = () => {
               value={formData.createdDate}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all font-semibold text-slate-800"
-              placeholder="DD/MM/YYYY"
             />
           </div>
         </div>
 
         <div className="p-8 space-y-8">
-          {/* Student Details */}
+          {/* Details Section */}
           <section>
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 mb-4">
-              Student Details
+              {formData.receiptType === 'Student' ? 'Student Details' : 'Client Details'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Student Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {formData.receiptType === 'Student' ? 'Student Name *' : 'Client / Company Name *'}
+                </label>
                 <input
                   type="text"
                   name="customerName"
@@ -178,7 +210,6 @@ const CreateReceipt = () => {
                   value={formData.customerName}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
-                  placeholder="Enter full name"
                 />
               </div>
               <div>
@@ -190,9 +221,38 @@ const CreateReceipt = () => {
                   value={formData.mobile}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
-                  placeholder="10-digit number"
                 />
               </div>
+
+              {formData.receiptType === 'Student' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">College</label>
+                    <input type="text" name="college" value={formData.college} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" placeholder="e.g. MIT Pune" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Branch</label>
+                    <input type="text" name="branch" value={formData.branch} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" placeholder="e.g. Computer Science" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Internship Domain</label>
+                    <input type="text" name="domain" value={formData.domain} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" placeholder="e.g. Web Development" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Duration</label>
+                    <input type="text" name="duration" value={formData.duration} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" placeholder="e.g. 6 Months" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
+                    <input type="text" name="batch" value={formData.batch} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" placeholder="e.g. Winter 2024" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Mentor</label>
+                    <input type="text" name="mentor" value={formData.mentor} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" placeholder="e.g. John Doe" />
+                  </div>
+                </>
+              )}
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
                 <textarea
@@ -201,7 +261,6 @@ const CreateReceipt = () => {
                   value={formData.address}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
-                  placeholder="Full address"
                 ></textarea>
               </div>
             </div>
@@ -210,11 +269,13 @@ const CreateReceipt = () => {
           {/* Fee Details */}
           <section>
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 mb-4">
-              Fee Details
+              {formData.receiptType === 'Student' ? 'Fee Details' : 'Project Details'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Course / Program Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {formData.receiptType === 'Student' ? 'Course / Program Name *' : 'Project Name *'}
+                </label>
                 <input
                   type="text"
                   name="productName"
@@ -222,18 +283,18 @@ const CreateReceipt = () => {
                   value={formData.productName}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
-                  placeholder="e.g. Web Development Service"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Fee Description</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {formData.receiptType === 'Student' ? 'Fee Description' : 'Project Scope / Description'}
+                </label>
                 <textarea
                   name="description"
                   rows="2"
                   value={formData.description}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
-                  placeholder="Detailed description of the service/product"
                 ></textarea>
               </div>
               <div>
@@ -247,7 +308,6 @@ const CreateReceipt = () => {
                   value={formData.amount}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all font-mono"
-                  placeholder="0.00"
                 />
               </div>
               <div>
@@ -310,7 +370,6 @@ const CreateReceipt = () => {
                   value={formData.transactionId}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all font-mono uppercase"
-                  placeholder="e.g. TXN123456789"
                 />
               </div>
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ref, get, update } from 'firebase/database';
 import { db } from '../firebase';
-import { Save, X, Calculator, CreditCard, Banknote, Building2 } from 'lucide-react';
+import { Save, X, Calculator, CreditCard, Banknote, Building2, User, Briefcase } from 'lucide-react';
 
 const EditReceipt = () => {
   const { id } = useParams();
@@ -12,10 +12,17 @@ const EditReceipt = () => {
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
+    receiptType: 'Student', // Default
     receiptNo: '',
     customerName: '',
     mobile: '',
     address: '',
+    college: '',
+    branch: '',
+    domain: '',
+    duration: '',
+    batch: '',
+    mentor: '',
     productName: '',
     description: '',
     amount: '',
@@ -42,6 +49,7 @@ const EditReceipt = () => {
           const data = snapshot.val();
           setFormData({
             ...data,
+            receiptType: data.receiptType || 'Student', // Handle old receipts
             amount: data.amount ? data.amount.toString() : '',
             gst: data.gst ? data.gst.toString() : '0'
           });
@@ -78,7 +86,6 @@ const EditReceipt = () => {
 
     try {
       const receiptRef = ref(db, `receipts/${id}`);
-      
       const totalAmount = calculateTotal();
       
       const receiptData = {
@@ -90,8 +97,6 @@ const EditReceipt = () => {
       };
 
       await update(receiptRef, receiptData);
-      
-      // Navigate to view receipt
       navigate(`/receipt/${id}`);
     } catch (err) {
       console.error("Error updating receipt:", err);
@@ -109,7 +114,7 @@ const EditReceipt = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">Edit Receipt</h1>
         <button 
@@ -127,6 +132,35 @@ const EditReceipt = () => {
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        
+        {/* Receipt Type Selection */}
+        <div className="bg-white p-6 border-b border-slate-100 flex justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, receiptType: 'Student' }))}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-all font-semibold ${
+              formData.receiptType === 'Student' 
+                ? 'border-[#0056b3] bg-[#f0f7ff] text-[#0056b3]' 
+                : 'border-slate-200 text-slate-500 hover:border-slate-300'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            Student Internship
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, receiptType: 'Client' }))}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-all font-semibold ${
+              formData.receiptType === 'Client' 
+                ? 'border-[#0056b3] bg-[#f0f7ff] text-[#0056b3]' 
+                : 'border-slate-200 text-slate-500 hover:border-slate-300'
+            }`}
+          >
+            <Briefcase className="w-5 h-5" />
+            Client Project
+          </button>
+        </div>
+
         {/* Form Header info */}
         <div className="bg-slate-50 p-6 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           <div>
@@ -138,7 +172,6 @@ const EditReceipt = () => {
               value={formData.receiptNo}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all font-bold text-[#0056b3]"
-              placeholder="e.g. SPT-2026-0001"
             />
           </div>
           <div>
@@ -150,20 +183,21 @@ const EditReceipt = () => {
               value={formData.createdDate}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all font-semibold text-slate-800"
-              placeholder="DD/MM/YYYY"
             />
           </div>
         </div>
 
         <div className="p-8 space-y-8">
-          {/* Student Details */}
+          {/* Details Section */}
           <section>
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 mb-4">
-              Student Details
+              {formData.receiptType === 'Student' ? 'Student Details' : 'Client Details'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Student Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {formData.receiptType === 'Student' ? 'Student Name *' : 'Client / Company Name *'}
+                </label>
                 <input
                   type="text"
                   name="customerName"
@@ -184,6 +218,36 @@ const EditReceipt = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
                 />
               </div>
+
+              {formData.receiptType === 'Student' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">College</label>
+                    <input type="text" name="college" value={formData.college || ''} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Branch</label>
+                    <input type="text" name="branch" value={formData.branch || ''} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Internship Domain</label>
+                    <input type="text" name="domain" value={formData.domain || ''} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Duration</label>
+                    <input type="text" name="duration" value={formData.duration || ''} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
+                    <input type="text" name="batch" value={formData.batch || ''} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Mentor</label>
+                    <input type="text" name="mentor" value={formData.mentor || ''} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all" />
+                  </div>
+                </>
+              )}
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
                 <textarea
@@ -200,11 +264,13 @@ const EditReceipt = () => {
           {/* Fee Details */}
           <section>
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 mb-4">
-              Fee Details
+              {formData.receiptType === 'Student' ? 'Fee Details' : 'Project Details'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Course / Program Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {formData.receiptType === 'Student' ? 'Course / Program Name *' : 'Project Name *'}
+                </label>
                 <input
                   type="text"
                   name="productName"
@@ -215,7 +281,9 @@ const EditReceipt = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Fee Description</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {formData.receiptType === 'Student' ? 'Fee Description' : 'Project Scope / Description'}
+                </label>
                 <textarea
                   name="description"
                   rows="2"
