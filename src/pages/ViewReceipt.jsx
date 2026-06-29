@@ -169,6 +169,13 @@ const ViewReceipt = () => {
                 <span className="text-left font-medium text-gray-700">Payment Method</span>
                 <span className="border-b border-gray-300 pb-1">{receipt.paymentMode}</span>
 
+                {receipt.installment && (
+                  <>
+                    <span className="text-left font-medium text-gray-700">Payment Type</span>
+                    <span className="border-b border-gray-300 pb-1">{receipt.installment}</span>
+                  </>
+                )}
+
                 {receipt.transactionId && (
                   <>
                     <span className="text-left font-medium text-gray-700">Transaction ID</span>

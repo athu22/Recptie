@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import signUrl from '../assets/sign.png';
 
 export const generatePDF = async (receipt, profile, action = 'download') => {
   if (!receipt) return;
@@ -128,10 +127,18 @@ export const generatePDF = async (receipt, profile, action = 'download') => {
   doc.line(150, rightY + 1.5, 195, rightY + 1.5);
   rightY += 7;
   
+  if (receipt.installment) {
+    doc.text('Payment Type', 110, rightY);
+    doc.text(receipt.installment, 150, rightY);
+    doc.line(150, rightY + 1.5, 195, rightY + 1.5);
+    rightY += 7;
+  }
+  
   if (receipt.transactionId) {
     doc.text('Transaction ID', 110, rightY);
     doc.text(receipt.transactionId, 150, rightY);
     doc.line(150, rightY + 1.5, 195, rightY + 1.5);
+    rightY += 7;
   }
 
   // 6. Table
@@ -196,19 +203,8 @@ export const generatePDF = async (receipt, profile, action = 'download') => {
   doc.line(130, finalY - 5, 195, finalY - 5);
   doc.text('Signature', 130, finalY);
 
-  // Add signature image over the line if available
-  try {
-    const signResponse = await fetch(signUrl);
-    const signBlob = await signResponse.blob();
-    const signReader = new FileReader();
-    const signBase64 = await new Promise((resolve) => {
-      signReader.readAsDataURL(signBlob);
-      signReader.onloadend = () => resolve(signReader.result);
-    });
-    doc.addImage(signBase64, 'PNG', 130, finalY - 25, 40, 20);
-  } catch (error) {
-    console.error('Error loading signature image:', error);
-  }
+  // Signature image (stamp) has been removed as requested.
+
 
   doc.setTextColor(242, 107, 28); // Orange
   doc.setFontSize(12);

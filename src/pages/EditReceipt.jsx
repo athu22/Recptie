@@ -25,6 +25,7 @@ const EditReceipt = () => {
     mentor: '',
     productName: '',
     description: '',
+    installment: 'Full Payment',
     amount: '',
     gst: '0',
     paymentMode: 'Cash',
@@ -50,6 +51,7 @@ const EditReceipt = () => {
           setFormData({
             ...data,
             receiptType: data.receiptType || 'Student', // Handle old receipts
+            installment: data.installment || 'Full Payment', // Handle old receipts
             amount: data.amount ? data.amount.toString() : '',
             gst: data.gst ? data.gst.toString() : '0'
           });
@@ -318,6 +320,23 @@ const EditReceipt = () => {
                   <option value="12">12%</option>
                   <option value="18">18%</option>
                   <option value="28">28%</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Installment Type</label>
+                <select
+                  name="installment"
+                  value={formData.installment || 'Full Payment'}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0056b3] focus:border-[#0056b3] outline-none transition-all"
+                >
+                  <option value="Full Payment">Full Payment</option>
+                  <option value="1st Installment">1st Installment</option>
+                  <option value="2nd Installment">2nd Installment</option>
+                  <option value="3rd Installment">3rd Installment</option>
+                  <option value="4th Installment">4th Installment</option>
+                  <option value="Registration Fee">Registration Fee</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
             </div>
